@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: saas-tf-postgres
+    environment:
+      POSTGRES_USER: saasuser
+      POSTGRES_PASSWORD: saaspassword
+      POSTGRES_DB: saasdev
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U saasuser']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: saas-tf-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://saasuser:saaspassword@postgres:5432/saasdev
+      JWT_SECRET: dev-secret-key-minimum-32-characters-long!
+      JWT_EXPIRES_IN: 30d
+      GCP_PROJECT_ID: saas-tf-dev
+      GCP_ZONE_NAME: saas-tf-zone
+      GCP_DNS_DOMAIN: saas.tf
+      FRONTEND_URL: http://localhost:3000
+      RATE_LIMIT_ENABLED: 'false'
+      LOG_LEVEL: debug
+      # Add your Stripe/SendGrid keys here if testing locally
+      # STRIPE_SECRET_KEY: sk_test_...
+      # STRIPE_WEBHOOK_SECRET: whsec_...
+      # SENDGRID_API_KEY: SG.xxxxx
+    ports:
+      - '4000:4000'
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - /app/dist
+    command: npm run dev
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:4000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # Frontend Next.js
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: deps  # Use deps stage for development
+    container_name: saas-tf-frontend
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
+      NEXT_PUBLIC_APP_NAME: saas.tf
+      NEXT_PUBLIC_DOMAIN: saas.tf
+      # Add your Stripe publishable key if testing locally
+      # NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_...
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: saas-tf-network

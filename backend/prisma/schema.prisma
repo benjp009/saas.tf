@@ -1,0 +1,164 @@
+// Prisma Schema for saas.tf Subdomain Marketplace
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Subscription Status Enum
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+  TRIALING
+}
+
+// Subscription Plan Enum
+// Annual packages: FREE (2 subdomains), PACKAGE_5 ($10/year), PACKAGE_50 ($50/year)
+enum SubscriptionPlan {
+  FREE
+  PACKAGE_5
+  PACKAGE_50
+}
+
+// User Model
+model User {
+  id                     String         @id @default(cuid())
+  email                  String         @unique
+  passwordHash           String
+  firstName              String?
+  lastName               String?
+  emailVerified          Boolean        @default(false)
+  emailVerificationToken String?
+  passwordResetToken     String?
+  passwordResetExpires   DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  lastLoginAt            DateTime?
+
+  // Stripe fields for payment integration
+  stripeCustomerId       String?        @unique
+
+  // Relations
+  subdomains             Subdomain[]
+  subscriptions          Subscription[]
+  payments               Payment[]
+
+  @@index([email])
+  @@index([stripeCustomerId])
+}
+
+// Subdomain Model
+model Subdomain {
+  id            String    @id @default(cuid())
+  name          String    @unique // e.g., "myapp" (not full domain)
+  ipAddress     String    // The A record IP address
+  isActive      Boolean   @default(true)
+  dnsRecordId   String?   // GCP DNS record identifier for updates/deletes
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  expiresAt     DateTime? // When subscription expires
+
+  // Relations
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([name])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+// Subscription Model (Phase 2 - Payment Integration)
+model Subscription {
+  id                       String              @id @default(cuid())
+  status                   SubscriptionStatus  @default(TRIALING)
+  plan                     SubscriptionPlan    @default(FREE)
+
+  // Stripe fields
+  stripeSubscriptionId     String?             @unique
+  stripePriceId            String?
+  stripeCurrentPeriodStart DateTime?
+  stripeCurrentPeriodEnd   DateTime?
+  stripeCancelAt           DateTime?
+  stripeCancelAtPeriodEnd  Boolean             @default(false)
+
+  // Quota management
+  subdomainQuota           Int                 @default(2) // How many subdomains allowed (FREE plan default)
+  subdomainsUsed           Int                 @default(0)
+
+  // Timestamps
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  canceledAt               DateTime?
+  endedAt                  DateTime?
+
+  // Relations
+  userId                   String
+  user                     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments                 Payment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([stripeSubscriptionId])
+  @@index([stripeCurrentPeriodEnd])
+}
+
+// Payment Model (Phase 2 - Payment Tracking)
+model Payment {
+  id                    String        @id @default(cuid())
+  amount                Int           // Amount in cents
+  currency              String        @default("usd")
+  status                String        // succeeded, failed, pending
+
+  // Stripe fields
+  stripePaymentIntentId String?       @unique
+  stripeInvoiceId       String?       @unique
+
+  // Metadata
+  description           String?
+  receiptUrl            String?
+
+  // Timestamps
+  createdAt             DateTime      @default(now())
+  paidAt                DateTime?
+
+  // Relations
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId        String?
+  subscription          Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@index([stripePaymentIntentId])
+  @@index([stripeInvoiceId])
+  @@index([status])
+}
+
+// Reserved Subdomain Model (for blocking reserved names)
+model ReservedSubdomain {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  reason    String?  // Why it's reserved
+  createdAt DateTime @default(now())
+
+  @@index([name])
+}
+
+// Rate Limit Log Model (for tracking rate limiting)
+model RateLimitLog {
+  id          String   @id @default(cuid())
+  identifier  String   // IP address or user ID
+  endpoint    String   // API endpoint
+  attempts    Int      @default(1)
+  windowStart DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([identifier, endpoint, windowStart])
+}

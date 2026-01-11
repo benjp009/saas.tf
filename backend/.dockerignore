@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build output
+dist
+*.tsbuildinfo
+
+# Environment files (use platform environment variables instead)
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Testing
+coverage
+*.test.ts
+*.spec.ts
+tests/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+
+# Misc
+.DS_Store
+Thumbs.db
+.cache
+
+# Logs
+logs
+*.log
