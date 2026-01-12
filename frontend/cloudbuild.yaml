@@ -1,0 +1,48 @@
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/frontend:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/frontend:latest'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_API_URL=https://backend-7o2lsl6sua-uc.a.run.app/api/v1'
+      - '.'
+
+  # Push the Docker images to GCR
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'gcr.io/$PROJECT_ID/frontend'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'frontend'
+      - '--image=gcr.io/$PROJECT_ID/frontend:$BUILD_ID'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--cpu=1'
+      - '--memory=512Mi'
+      - '--timeout=60s'
+      - '--concurrency=100'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=NODE_ENV=production,NEXT_PUBLIC_API_URL=https://backend-7o2lsl6sua-uc.a.run.app/api/v1,NEXT_PUBLIC_APP_NAME=saas.tf,NEXT_PUBLIC_DOMAIN=saas.tf'
+
+images:
+  - 'gcr.io/$PROJECT_ID/frontend:$BUILD_ID'
+  - 'gcr.io/$PROJECT_ID/frontend:latest'
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'  # 20 minutes

@@ -16,6 +16,9 @@ import cronRoutes from './routes/cron.routes';
 
 const app: Application = express();
 
+// Trust proxy - required for Cloud Run/Load Balancer
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(
   helmet({

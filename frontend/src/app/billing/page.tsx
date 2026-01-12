@@ -8,6 +8,9 @@ import SubscriptionCard from '@/components/billing/SubscriptionCard';
 import PlanSelection from '@/components/billing/PlanSelection';
 import AppLayout from '@/components/layout/AppLayout';
 
+// Force dynamic rendering to avoid static generation issues with useSearchParams
+export const dynamic = 'force-dynamic';
+
 export default function BillingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

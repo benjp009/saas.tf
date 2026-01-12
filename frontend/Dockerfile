@@ -12,7 +12,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Stage 2: Builder - Build the application
 FROM node:18-alpine AS builder
@@ -45,7 +45,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy necessary files from builder
-COPY --from=builder /app/public ./public
+# Copy public directory if it exists (optional for Next.js)
 COPY --from=builder /app/package.json ./package.json
 
 # Copy Next.js build output

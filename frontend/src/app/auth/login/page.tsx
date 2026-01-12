@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody } from '@/components/ui/Card';
 
+// Force dynamic rendering to avoid static generation issues with useSearchParams
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

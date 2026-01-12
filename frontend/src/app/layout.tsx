@@ -5,6 +5,10 @@ import StoreInitializer from '@/components/providers/StoreInitializer';
 
 const inter = Inter({ subsets: ['latin'] });
 
+// Force dynamic rendering for all pages to avoid static generation issues
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+
 export const metadata: Metadata = {
   title: 'saas.tf - Subdomain Marketplace',
   description: 'Purchase and manage subdomains for your projects',
