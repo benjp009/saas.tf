@@ -179,7 +179,9 @@ class WebhookController {
      */
     async handleInvoicePaymentSucceeded(event) {
         const invoice = event.data.object;
-        const subscriptionId = invoice.subscription;
+        const subscriptionId = typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : invoice.subscription?.id;
         if (!subscriptionId) {
             return;
         }
@@ -235,7 +237,9 @@ class WebhookController {
      */
     async handleInvoicePaymentFailed(event) {
         const invoice = event.data.object;
-        const subscriptionId = invoice.subscription;
+        const subscriptionId = typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : invoice.subscription?.id;
         if (!subscriptionId) {
             return;
         }

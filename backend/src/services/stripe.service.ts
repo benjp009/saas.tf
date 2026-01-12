@@ -54,14 +54,37 @@ export class StripeService {
 
     try {
       this.stripe = new Stripe(secretKey, {
-        apiVersion: '2023-10-16',
         typescript: true,
+        maxNetworkRetries: 3,
+        timeout: 30000, // 30 seconds
+        httpClient: Stripe.createFetchHttpClient(),
       });
 
       logger.info('Stripe service initialized successfully');
+
+      // Test connectivity on startup
+      this.testConnectivity();
     } catch (error) {
       logger.error('Failed to initialize Stripe:', error);
       throw new InternalServerError('Failed to initialize payment service');
+    }
+  }
+
+  /**
+   * Test Stripe API connectivity on startup
+   */
+  private async testConnectivity(): Promise<void> {
+    if (!this.stripe) return;
+
+    try {
+      await this.stripe.balance.retrieve();
+      logger.info('Stripe API connectivity test: SUCCESS');
+    } catch (error: any) {
+      logger.error('Stripe API connectivity test FAILED:', {
+        error: error.message,
+        type: error.type,
+        code: error.code,
+      });
     }
   }
 
@@ -117,6 +140,25 @@ export class StripeService {
   }
 
   /**
+   * Get a Stripe customer by ID
+   */
+  async getCustomer(customerId: string): Promise<Stripe.Customer> {
+    const stripe = this.getStripe();
+
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      return customer as Stripe.Customer;
+    } catch (error: any) {
+      logger.warn('Failed to retrieve Stripe customer:', {
+        error: error.message,
+        code: error.code,
+        customerId,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Create a checkout session for subscription
    */
   async createCheckoutSession(params: {
@@ -163,11 +205,16 @@ export class StripeService {
         code: error.code,
         statusCode: error.statusCode,
         param: error.param,
+        requestId: error.requestId,
+        decline_code: error.decline_code,
+        raw: error.raw ? JSON.stringify(error.raw) : undefined,
         userId: params.userId,
         priceId: params.priceId,
         customerId: params.customerId,
+        successUrl: params.successUrl,
+        cancelUrl: params.cancelUrl,
       });
-      throw new InternalServerError('Failed to create checkout session');
+      throw new InternalServerError(`Failed to create checkout session: ${error.message}`);
     }
   }
 

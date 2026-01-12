@@ -23,6 +23,10 @@ const consoleFormat = winston.format.combine(
 export const logger = winston.createLogger({
   level: config.logLevel,
   format: logFormat,
+  defaultMeta: {
+    service: 'saas-tf-backend',
+    environment: config.nodeEnv,
+  },
   transports: [
     new winston.transports.Console({
       format: consoleFormat,
@@ -44,3 +48,17 @@ if (config.nodeEnv === 'production') {
     })
   );
 }
+
+// Helper function to create child logger with specific context
+export const createLogger = (context: string) => {
+  return logger.child({ context });
+};
+
+// Helper function to log with performance timing
+export const logWithTiming = (message: string, startTime: number, metadata?: any) => {
+  const duration = Date.now() - startTime;
+  logger.info(message, {
+    ...metadata,
+    duration: `${duration}ms`,
+  });
+};

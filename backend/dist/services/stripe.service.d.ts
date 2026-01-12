@@ -26,6 +26,10 @@ export declare class StripeService {
     private stripe;
     constructor();
     /**
+     * Test Stripe API connectivity on startup
+     */
+    private testConnectivity;
+    /**
      * Check if Stripe is enabled
      */
     isEnabled(): boolean;
@@ -41,6 +45,10 @@ export declare class StripeService {
         name?: string;
         userId: string;
     }): Promise<Stripe.Customer>;
+    /**
+     * Get a Stripe customer by ID
+     */
+    getCustomer(customerId: string): Promise<Stripe.Customer>;
     /**
      * Create a checkout session for subscription
      */

@@ -55,14 +55,36 @@ class StripeService {
         }
         try {
             this.stripe = new stripe_1.default(secretKey, {
-                apiVersion: '2023-10-16',
                 typescript: true,
+                maxNetworkRetries: 3,
+                timeout: 30000, // 30 seconds
+                httpClient: stripe_1.default.createFetchHttpClient(),
             });
             logger_1.logger.info('Stripe service initialized successfully');
+            // Test connectivity on startup
+            this.testConnectivity();
         }
         catch (error) {
             logger_1.logger.error('Failed to initialize Stripe:', error);
             throw new errors_1.InternalServerError('Failed to initialize payment service');
+        }
+    }
+    /**
+     * Test Stripe API connectivity on startup
+     */
+    async testConnectivity() {
+        if (!this.stripe)
+            return;
+        try {
+            await this.stripe.balance.retrieve();
+            logger_1.logger.info('Stripe API connectivity test: SUCCESS');
+        }
+        catch (error) {
+            logger_1.logger.error('Stripe API connectivity test FAILED:', {
+                error: error.message,
+                type: error.type,
+                code: error.code,
+            });
         }
     }
     /**
@@ -108,6 +130,24 @@ class StripeService {
         }
     }
     /**
+     * Get a Stripe customer by ID
+     */
+    async getCustomer(customerId) {
+        const stripe = this.getStripe();
+        try {
+            const customer = await stripe.customers.retrieve(customerId);
+            return customer;
+        }
+        catch (error) {
+            logger_1.logger.warn('Failed to retrieve Stripe customer:', {
+                error: error.message,
+                code: error.code,
+                customerId,
+            });
+            throw error;
+        }
+    }
+    /**
      * Create a checkout session for subscription
      */
     async createCheckoutSession(params) {
@@ -142,9 +182,20 @@ class StripeService {
         catch (error) {
             logger_1.logger.error('Failed to create checkout session:', {
                 error: error.message,
+                type: error.type,
+                code: error.code,
+                statusCode: error.statusCode,
+                param: error.param,
+                requestId: error.requestId,
+                decline_code: error.decline_code,
+                raw: error.raw ? JSON.stringify(error.raw) : undefined,
                 userId: params.userId,
+                priceId: params.priceId,
+                customerId: params.customerId,
+                successUrl: params.successUrl,
+                cancelUrl: params.cancelUrl,
             });
-            throw new errors_1.InternalServerError('Failed to create checkout session');
+            throw new errors_1.InternalServerError(`Failed to create checkout session: ${error.message}`);
         }
     }
     /**

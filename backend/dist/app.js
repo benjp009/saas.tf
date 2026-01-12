@@ -11,13 +11,19 @@ const logger_1 = require("./utils/logger");
 const errorHandler_middleware_1 = require("./middleware/errorHandler.middleware");
 const rateLimiting_middleware_1 = require("./middleware/rateLimiting.middleware");
 const httpsRedirect_middleware_1 = require("./middleware/httpsRedirect.middleware");
+const performance_middleware_1 = require("./middleware/performance.middleware");
+const sentry_1 = require("./config/sentry");
 // Import routes
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const subdomain_routes_1 = __importDefault(require("./routes/subdomain.routes"));
 const subscription_routes_1 = __importDefault(require("./routes/subscription.routes"));
 const webhook_routes_1 = __importDefault(require("./routes/webhook.routes"));
 const cron_routes_1 = __importDefault(require("./routes/cron.routes"));
+// Initialize Sentry BEFORE creating Express app
+(0, sentry_1.initSentry)();
 const app = (0, express_1.default)();
+// Trust proxy - required for Cloud Run/Load Balancer
+app.set('trust proxy', true);
 // Security middleware
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: {
@@ -57,6 +63,8 @@ app.use((req, _res, next) => {
     });
     next();
 });
+// Performance logging middleware
+app.use(performance_middleware_1.performanceLogger);
 // Health check endpoint
 app.get('/health', (_req, res) => {
     res.json({
@@ -73,6 +81,7 @@ app.use('/api/v1/cron', cron_routes_1.default);
 // 404 handler
 app.use(errorHandler_middleware_1.notFoundHandler);
 // Error handler (must be last)
+// Note: Sentry error capturing is handled in the errorHandler middleware
 app.use(errorHandler_middleware_1.errorHandler);
 exports.default = app;
 //# sourceMappingURL=app.js.map

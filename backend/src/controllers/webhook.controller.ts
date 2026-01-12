@@ -122,10 +122,10 @@ export class WebhookController {
       stripeSubscriptionId: subscriptionId,
       stripePriceId: priceId,
       currentPeriodStart: new Date(
-        stripeSubscription.current_period_start * 1000
+        (stripeSubscription as any).current_period_start * 1000
       ),
       currentPeriodEnd: new Date(
-        stripeSubscription.current_period_end * 1000
+        (stripeSubscription as any).current_period_end * 1000
       ),
     });
 
@@ -159,7 +159,7 @@ export class WebhookController {
    * Handle customer.subscription.updated
    */
   private async handleSubscriptionUpdated(event: Stripe.Event): Promise<void> {
-    const subscription = event.data.object as Stripe.Subscription;
+    const subscription = event.data.object as any;
 
     await subscriptionService.updateSubscriptionFromStripe({
       stripeSubscriptionId: subscription.id,
@@ -211,9 +211,11 @@ export class WebhookController {
   private async handleInvoicePaymentSucceeded(
     event: Stripe.Event
   ): Promise<void> {
-    const invoice = event.data.object as Stripe.Invoice;
+    const invoice = event.data.object as any;
 
-    const subscriptionId = invoice.subscription as string;
+    const subscriptionId = typeof invoice.subscription === 'string'
+      ? invoice.subscription
+      : (invoice.subscription as any)?.id;
     if (!subscriptionId) {
       return;
     }
@@ -273,9 +275,11 @@ export class WebhookController {
    * Handle invoice.payment_failed
    */
   private async handleInvoicePaymentFailed(event: Stripe.Event): Promise<void> {
-    const invoice = event.data.object as Stripe.Invoice;
+    const invoice = event.data.object as any;
 
-    const subscriptionId = invoice.subscription as string;
+    const subscriptionId = typeof invoice.subscription === 'string'
+      ? invoice.subscription
+      : (invoice.subscription as any)?.id;
     if (!subscriptionId) {
       return;
     }

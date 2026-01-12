@@ -7,14 +7,15 @@ const app_1 = __importDefault(require("./app"));
 const config_1 = require("./config");
 const logger_1 = require("./utils/logger");
 const database_1 = require("./config/database");
-const cron_service_1 = require("./services/cron.service");
+// import { cronService } from './services/cron.service'; // Disabled: Using Cloud Scheduler instead
 const startServer = async () => {
     try {
         // Test database connection
         await database_1.prisma.$queryRaw `SELECT 1`;
         logger_1.logger.info('Database connection verified');
-        // Initialize cron jobs
-        cron_service_1.cronService.init();
+        // Initialize cron jobs - DISABLED: Using Cloud Scheduler instead
+        // cronService.init();
+        logger_1.logger.info('Cron jobs managed by Cloud Scheduler');
         // Start server
         app_1.default.listen(config_1.config.port, () => {
             logger_1.logger.info(`Server running on port ${config_1.config.port}`);
@@ -30,12 +31,12 @@ const startServer = async () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
     logger_1.logger.info('SIGTERM received, shutting down gracefully...');
-    cron_service_1.cronService.stop();
+    // cronService.stop(); // Disabled: Using Cloud Scheduler
     process.exit(0);
 });
 process.on('SIGINT', () => {
     logger_1.logger.info('SIGINT received, shutting down gracefully...');
-    cron_service_1.cronService.stop();
+    // cronService.stop(); // Disabled: Using Cloud Scheduler
     process.exit(0);
 });
 startServer();

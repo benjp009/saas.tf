@@ -26,5 +26,11 @@ export declare const config: {
         maxRequests: number;
     };
     logLevel: string;
+    sentry: {
+        dsn: string | undefined;
+        environment: string;
+        tracesSampleRate: number;
+        profilesSampleRate: number;
+    };
 };
 //# sourceMappingURL=index.d.ts.map

@@ -259,6 +259,25 @@ class SubscriptionService {
         }
         // Create or get Stripe customer
         let customerId = user.stripeCustomerId;
+        // If user has a customer ID, verify it exists in Stripe (handles test->prod migration)
+        if (customerId) {
+            try {
+                await stripe_service_1.stripeService.getCustomer(customerId);
+            }
+            catch (error) {
+                // Customer doesn't exist (e.g., test mode customer in prod mode)
+                if (error.code === 'resource_missing') {
+                    logger_1.logger.info('Stripe customer not found, creating new one', {
+                        userId: user.id,
+                        oldCustomerId: customerId,
+                    });
+                    customerId = null; // Will create new customer below
+                }
+                else {
+                    throw error;
+                }
+            }
+        }
         if (!customerId) {
             const customer = await stripe_service_1.stripeService.createCustomer({
                 email: user.email,

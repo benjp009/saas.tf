@@ -6,6 +6,8 @@ import { logger } from './utils/logger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.middleware';
 import { globalLimiter } from './middleware/rateLimiting.middleware';
 import { httpsRedirect } from './middleware/httpsRedirect.middleware';
+import { performanceLogger } from './middleware/performance.middleware';
+import { initSentry } from './config/sentry';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -13,6 +15,9 @@ import subdomainRoutes from './routes/subdomain.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import webhookRoutes from './routes/webhook.routes';
 import cronRoutes from './routes/cron.routes';
+
+// Initialize Sentry BEFORE creating Express app
+initSentry();
 
 const app: Application = express();
 
@@ -69,6 +74,9 @@ app.use((req, _res, next) => {
   next();
 });
 
+// Performance logging middleware
+app.use(performanceLogger);
+
 // Health check endpoint
 app.get('/health', (_req, res) => {
   res.json({
@@ -88,6 +96,7 @@ app.use('/api/v1/cron', cronRoutes);
 app.use(notFoundHandler);
 
 // Error handler (must be last)
+// Note: Sentry error capturing is handled in the errorHandler middleware
 app.use(errorHandler);
 
 export default app;

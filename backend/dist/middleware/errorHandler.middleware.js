@@ -3,13 +3,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notFoundHandler = exports.errorHandler = void 0;
 const errors_1 = require("../utils/errors");
 const logger_1 = require("../utils/logger");
+const sentry_1 = require("../config/sentry");
 const errorHandler = (err, req, res, _next) => {
-    // Log error
+    // Log error with context
     logger_1.logger.error('Error:', {
         message: err.message,
         stack: err.stack,
         url: req.url,
         method: req.method,
+        userId: req.user?.id,
+        ip: req.ip,
+    });
+    // Capture error in Sentry with additional context
+    sentry_1.Sentry.withScope((scope) => {
+        scope.setContext('request', {
+            url: req.url,
+            method: req.method,
+            headers: req.headers,
+            query: req.query,
+            body: req.body,
+        });
+        if (req.user?.id) {
+            scope.setUser({ id: req.user.id });
+        }
+        // Only capture non-operational errors in Sentry
+        if (!(err instanceof errors_1.AppError) || !err.isOperational) {
+            sentry_1.Sentry.captureException(err);
+        }
     });
     // Handle operational errors
     if (err instanceof errors_1.AppError && err.isOperational) {

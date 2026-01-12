@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import { Sentry } from '../config/sentry';
 
 export const errorHandler = (
   err: Error | AppError,
@@ -8,12 +9,34 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
-  // Log error
+  // Log error with context
   logger.error('Error:', {
     message: err.message,
     stack: err.stack,
     url: req.url,
     method: req.method,
+    userId: (req as any).user?.id,
+    ip: req.ip,
+  });
+
+  // Capture error in Sentry with additional context
+  Sentry.withScope((scope) => {
+    scope.setContext('request', {
+      url: req.url,
+      method: req.method,
+      headers: req.headers,
+      query: req.query,
+      body: req.body,
+    });
+
+    if ((req as any).user?.id) {
+      scope.setUser({ id: (req as any).user.id });
+    }
+
+    // Only capture non-operational errors in Sentry
+    if (!(err instanceof AppError) || !err.isOperational) {
+      Sentry.captureException(err);
+    }
   });
 
   // Handle operational errors
