@@ -159,7 +159,13 @@ export class StripeService {
     } catch (error: any) {
       logger.error('Failed to create checkout session:', {
         error: error.message,
+        type: error.type,
+        code: error.code,
+        statusCode: error.statusCode,
+        param: error.param,
         userId: params.userId,
+        priceId: params.priceId,
+        customerId: params.customerId,
       });
       throw new InternalServerError('Failed to create checkout session');
     }
