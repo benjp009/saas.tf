@@ -8,7 +8,13 @@ steps:
       - '-t'
       - 'gcr.io/$PROJECT_ID/frontend:latest'
       - '--build-arg'
-      - 'NEXT_PUBLIC_API_URL=https://backend-7o2lsl6sua-uc.a.run.app/api/v1'
+      - 'NEXT_PUBLIC_API_URL=https://saas.tf/api/v1'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_APP_NAME=saas.tf'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_DOMAIN=saas.tf'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51SnFhqDhWqOk1oY31r3aT87udkD6DfmSAwmnee8z21aSAV1T8BZPY8E2F5DWt1I94bAtQ0LzfpsWJKrjFNE0ixpS00OymdcVdA'
       - '.'
 
   # Push the Docker images to GCR
@@ -35,7 +41,7 @@ steps:
       - '--timeout=60s'
       - '--concurrency=100'
       - '--allow-unauthenticated'
-      - '--set-env-vars=NODE_ENV=production,NEXT_PUBLIC_API_URL=https://backend-7o2lsl6sua-uc.a.run.app/api/v1,NEXT_PUBLIC_APP_NAME=saas.tf,NEXT_PUBLIC_DOMAIN=saas.tf'
+      - '--set-env-vars=NODE_ENV=production,NEXT_PUBLIC_API_URL=https://saas.tf/api/v1,NEXT_PUBLIC_APP_NAME=saas.tf,NEXT_PUBLIC_DOMAIN=saas.tf,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51SnFhqDhWqOk1oY31r3aT87udkD6DfmSAwmnee8z21aSAV1T8BZPY8E2F5DWt1I94bAtQ0LzfpsWJKrjFNE0ixpS00OymdcVdA'
 
 images:
   - 'gcr.io/$PROJECT_ID/frontend:$BUILD_ID'
